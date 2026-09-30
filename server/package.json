@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "babel-node": "babel-node",
-    "start": "nodemon --exec babel-node ./src/index.js",
+    "start": "nodemon --exec \"node ./node_modules/@babel/node/bin/babel-node.js\" ./src/index.js",
     "test": "NODE_ENV=test mocha ./src/tests/**/*.test.js",
     "build": "babel src -d dist"
   },
