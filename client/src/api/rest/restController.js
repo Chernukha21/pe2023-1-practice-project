@@ -4,7 +4,11 @@ import http from '../interceptor';
 export const registerRequest = data => http.post('registration', data);
 export const loginRequest = data => http.post('login', data);
 export const getUser = () => http.post('getUser');
-export const updateContest = data => http.post('updateContest', data);
+export const updateContest = formData => {
+  const contestId = formData.get('contestId');
+  formData.delete('contestId');
+  return http.patch(`contests/${encodeURIComponent(contestId)}`, formData);
+};
 export const setNewOffer = data => http.post('setNewOffer', data);
 export const setOfferStatus = data => http.post('setOfferStatus', data);
 export const downloadContestFile = data =>
@@ -30,24 +34,7 @@ export const changeCatalogName = data => http.post('updateNameCatalog', data);
 export const getCustomersContests = data =>
   http.get(`contests/byCustomer?${queryString.stringify(data)}`);
 
-export const getActiveContests = ({
-  offset,
-  limit,
-  typeIndex,
-  contestId,
-  industry,
-  awardSort,
-  ownEntries,
-}) =>
-  http.post('getAllContests', {
-    offset,
-    limit,
-    typeIndex,
-    contestId,
-    industry,
-    awardSort,
-    ownEntries,
-  });
+export const getActiveContests = params => http.get('contests', { params });
 
 export const getContestById = ({ contestId }) =>
   http.get(`contests/${contestId}`);

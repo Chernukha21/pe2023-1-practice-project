@@ -5,6 +5,7 @@ const userQueries = require('./queries/userQueries');
 const controller = require('../socketInit');
 const UtilFunctions = require('../utils/functions');
 const CONSTANTS = require('../constants');
+const BadRequestError = require('../errors/BadRequestError');
 
 module.exports.dataForContest = async (req, res, next) => {
   const response = {};
@@ -104,13 +105,13 @@ module.exports.updateContest = async (req, res, next) => {
     req.body.fileName = req.file.filename;
     req.body.originalFileName = req.file.originalname;
   }
-  const contestId = req.body.contestId;
-  delete req.body.contestId;
+
   try {
     const updatedContest = await contestQueries.updateContest(req.body, {
-      id: contestId,
+      id: req.contestId,
       userId: req.tokenData.userId,
     });
+
     res.send(updatedContest);
   } catch (e) {
     next(e);
@@ -286,39 +287,62 @@ module.exports.getCustomersContests = (req, res, next) => {
 };
 
 module.exports.getContests = (req, res, next) => {
+  const {
+    limit: requestedLimit = '8',
+    offset: requestedOffset = '0',
+    typeIndex: requestedTypeIndex = '1',
+    contestId: requestedContestId = '',
+    industry = '',
+    awardSort = 'asc',
+    ownEntries = 'false',
+  } = req.query;
+
+  const limit = Number(requestedLimit);
+  const offset = Number(requestedOffset);
+  const typeIndex = Number(requestedTypeIndex);
+  const contestId =
+    requestedContestId === '' ? undefined : Number(requestedContestId);
+
+  if (
+    !Number.isSafeInteger(limit) ||
+    limit < 1 ||
+    !Number.isSafeInteger(offset) ||
+    offset < 0 ||
+    !Number.isSafeInteger(typeIndex) ||
+    typeIndex < 0 ||
+    typeIndex > 7 ||
+    (contestId !== undefined &&
+      (!Number.isSafeInteger(contestId) || contestId < 1)) ||
+    typeof industry !== 'string' ||
+    !['asc', 'desc'].includes(awardSort) ||
+    !['true', 'false'].includes(ownEntries)
+  ) {
+    return next(new BadRequestError('Invalid contest filters'));
+  }
+
+  const hasOwnEntries = ownEntries === 'true';
+
   const predicates = UtilFunctions.createWhereForAllContests(
-    req.body.typeIndex,
-    req.body.contestId,
-    req.body.industry,
-    req.body.awardSort
+    typeIndex,
+    contestId,
+    industry,
+    awardSort
   );
+
   db.Contests.findAll({
     where: predicates.where,
     order: predicates.order,
-    limit: req.body.limit,
-    offset: req.body.offset ? req.body.offset : 0,
+    limit,
+    offset,
     include: [
       {
         model: db.Offers,
-        required: req.body.ownEntries,
-        where: req.body.ownEntries ? { userId: req.tokenData.userId } : {},
+        required: hasOwnEntries,
+        where: hasOwnEntries ? { userId: req.tokenData.userId } : {},
         attributes: ['id'],
       },
     ],
   })
-    .then(contests => {
-      contests.forEach(
-        contest => (contest.dataValues.count = contest.dataValues.Offers.length)
-      );
-      let haveMore = true;
-      if (contests.length === 0) {
-        haveMore = false;
-      }
-      res.send({ contests, haveMore });
-    })
-    .catch(err => {
-      next(new ServerError());
-    });
 };
 
 module.exports.getAllOffers = async (req, res, next) => {

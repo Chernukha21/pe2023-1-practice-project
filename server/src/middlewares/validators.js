@@ -38,3 +38,14 @@ module.exports.validateContestCreation = (req, res, next) => {
       next(err);
     });
 };
+
+module.exports.validateContestId = (req, res, next) => {
+  const contestId = Number(req.params.contestId);
+
+  if (!Number.isSafeInteger(contestId) || contestId <= 0) {
+    return next(new BadRequestError('Invalid contest ID'));
+  }
+
+  req.contestId = contestId;
+  next();
+};

@@ -26,7 +26,7 @@ router.post(
   '/registration',
   validators.validateRegistrationData,
   hashPass,
-  userController.registration
+  userController.registration,
 );
 
 router.post('/login', validators.validateLogin, userController.login);
@@ -46,37 +46,26 @@ router.get('/users/id/transactions', userController.getTransactions);
 
 router.post('/dataForContest', contestController.dataForContest);
 
-router.post(
-  '/getAllContests',
-  basicMiddlewares.onlyForCreative,
-  contestController.getContests
-);
 
 router.get('/downloadFile/:fileName', contestController.downloadFile);
-
-router.post(
-  '/updateContest',
-  upload.updateContestFile,
-  contestController.updateContest
-);
 
 router.post(
   '/setNewOffer',
   upload.uploadLogoFiles,
   basicMiddlewares.canSendOffer,
-  contestController.setNewOffer
+  contestController.setNewOffer,
 );
 
 router.post(
   '/setOfferStatus',
   basicMiddlewares.onlyForCustomerWhoCreateContest,
-  contestController.setOfferStatus
+  contestController.setOfferStatus,
 );
 
 router.post(
   '/changeMark',
   basicMiddlewares.onlyForCustomer,
-  userController.changeMark
+  userController.changeMark,
 );
 
 router.post('/updateUser', upload.uploadAvatar, userController.updateUser);
@@ -84,7 +73,7 @@ router.post('/updateUser', upload.uploadAvatar, userController.updateUser);
 router.post(
   '/cashout',
   basicMiddlewares.onlyForCreative,
-  userController.cashout
+  userController.cashout,
 );
 
 router.post('/newMessage', checkToken.checkToken, chatController.addMessage);

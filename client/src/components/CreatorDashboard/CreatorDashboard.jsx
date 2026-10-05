@@ -134,12 +134,11 @@ class CreatorDashboard extends React.Component {
   parseUrlForParams = search => {
     const obj = queryString.parse(search);
     const filter = {
-      typeIndex: obj.typeIndex || 1,
+      typeIndex: obj.typeIndex === undefined ? 1 : Number(obj.typeIndex),
       contestId: obj.contestId ? obj.contestId : '',
       industry: obj.industry ? obj.industry : '',
       awardSort: obj.awardSort || 'asc',
-      ownEntries:
-        typeof obj.ownEntries === 'undefined' ? false : obj.ownEntries,
+      ownEntries: obj.ownEntries === 'true',
     };
     if (!isEqual(filter, this.props.creatorFilter)) {
       this.props.newFilter(filter);

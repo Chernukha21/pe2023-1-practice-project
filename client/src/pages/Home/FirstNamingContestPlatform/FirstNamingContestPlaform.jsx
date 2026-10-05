@@ -7,7 +7,7 @@ function FirstNamingContestPlaform () {
       <h2>World's #1 Naming Contest Platform</h2>
       <ul className={styles.firstPlatformCards}>
         {data.map(({ icon, title, body }) => (
-          <li className={styles.firstPlatformCardContainer}>
+          <li className={styles.firstPlatformCardContainer} key={title}>
             <div className={styles.firstPlatformCard}>
               <img src={icon} />
               <h3 className={styles.firstPlatformCardTitle}>

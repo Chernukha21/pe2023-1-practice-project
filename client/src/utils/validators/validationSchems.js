@@ -125,11 +125,11 @@ export default {
   PaymentSchema: yup.object().shape({
     number: yup
       .string()
-      .test(
-        'test-cardNumber',
-        'Credit Card number is invalid',
-        value => valid.number(value).isValid
-      )
+      // .test(
+      //   'test-cardNumber',
+      //   'Credit Card number is invalid',
+      //   value => valid.number(value).isValid
+      // )
       .required('required'),
     name: yup
       .string()
