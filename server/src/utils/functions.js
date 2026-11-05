@@ -52,7 +52,7 @@ const types = [
 
 module.exports.mapStringToValues = v => {
   switch (v) {
-    case 'true':
+  case 'true':
       return true;
     case 'false':
       return false;

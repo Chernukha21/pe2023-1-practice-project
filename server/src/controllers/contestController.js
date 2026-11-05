@@ -5,7 +5,6 @@ const userQueries = require('./queries/userQueries');
 const controller = require('../socketInit');
 const UtilFunctions = require('../utils/functions');
 const CONSTANTS = require('../constants');
-const BadRequestError = require('../errors/BadRequestError');
 
 module.exports.dataForContest = async (req, res, next) => {
   const response = {};
@@ -28,7 +27,7 @@ module.exports.dataForContest = async (req, res, next) => {
     if (!characteristics) {
       return next(new ServerError());
     }
-    characteristics.forEach(characteristic => {
+    characteristics.forEach((characteristic) => {
       if (!response[characteristic.type]) {
         response[characteristic.type] = [];
       }
@@ -83,7 +82,7 @@ module.exports.getContestById = async (req, res, next) => {
       ],
     });
     contestInfo = contestInfo.get({ plain: true });
-    contestInfo.Offers.forEach(offer => {
+    contestInfo.Offers.forEach((offer) => {
       if (offer.Rating) {
         offer.mark = offer.Rating.mark;
       }
@@ -169,11 +168,11 @@ const resolveOffer = async (
     {
       status: db.sequelize.literal(`   CASE
             WHEN "id"=${contestId}  AND "orderId"='${orderId}' THEN '${
-        CONSTANTS.CONTEST_STATUS_FINISHED
-      }'
+              CONSTANTS.CONTEST_STATUS_FINISHED
+            }'
             WHEN "orderId"='${orderId}' AND "priority"=${priority + 1}  THEN '${
-        CONSTANTS.CONTEST_STATUS_ACTIVE
-      }'
+              CONSTANTS.CONTEST_STATUS_ACTIVE
+            }'
             ELSE '${CONSTANTS.CONTEST_STATUS_PENDING}'
             END
     `),
@@ -201,7 +200,7 @@ const resolveOffer = async (
   );
   transaction.commit();
   const arrayRoomsId = [];
-  updatedOffers.forEach(offer => {
+  updatedOffers.forEach((offer) => {
     if (
       offer.status === CONSTANTS.OFFER_STATUS_REJECTED &&
       creatorId !== offer.userId
@@ -273,9 +272,10 @@ module.exports.getCustomersContests = (req, res, next) => {
       },
     ],
   })
-    .then(contests => {
+    .then((contests) => {
       contests.forEach(
-        contest => (contest.dataValues.count = contest.dataValues.Offers.length)
+        (contest) =>
+          (contest.dataValues.count = contest.dataValues.Offers.length)
       );
       let haveMore = true;
       if (contests.length === 0) {
@@ -283,66 +283,61 @@ module.exports.getCustomersContests = (req, res, next) => {
       }
       res.send({ contests, haveMore });
     })
-    .catch(err => next(new ServerError(err)));
+    .catch((err) => next(new ServerError(err)));
 };
 
-module.exports.getContests = (req, res, next) => {
-  const {
-    limit: requestedLimit = '8',
-    offset: requestedOffset = '0',
-    typeIndex: requestedTypeIndex = '1',
-    contestId: requestedContestId = '',
-    industry = '',
-    awardSort = 'asc',
-    ownEntries = 'false',
-  } = req.query;
+module.exports.getContests = async (req, res, next) => {
+  try {
+    const {
+      limit,
+      offset,
+      typeIndex,
+      contestId,
+      industry,
+      awardSort,
+      hasOwnEntries,
+    } = req.contestFilters;
 
-  const limit = Number(requestedLimit);
-  const offset = Number(requestedOffset);
-  const typeIndex = Number(requestedTypeIndex);
-  const contestId =
-    requestedContestId === '' ? undefined : Number(requestedContestId);
+    const predicates = UtilFunctions.createWhereForAllContests(
+      typeIndex,
+      contestId,
+      industry,
+      awardSort
+    );
 
-  if (
-    !Number.isSafeInteger(limit) ||
-    limit < 1 ||
-    !Number.isSafeInteger(offset) ||
-    offset < 0 ||
-    !Number.isSafeInteger(typeIndex) ||
-    typeIndex < 0 ||
-    typeIndex > 7 ||
-    (contestId !== undefined &&
-      (!Number.isSafeInteger(contestId) || contestId < 1)) ||
-    typeof industry !== 'string' ||
-    !['asc', 'desc'].includes(awardSort) ||
-    !['true', 'false'].includes(ownEntries)
-  ) {
-    return next(new BadRequestError('Invalid contest filters'));
+    const contests = await db.Contests.findAll({
+      where: predicates.where,
+      order: predicates.order,
+      limit,
+      offset,
+      include: [
+        {
+          model: db.Offers,
+          required: hasOwnEntries,
+          where: hasOwnEntries ? { userId: req.tokenData.userId } : {},
+          attributes: ['id'],
+        },
+      ],
+    });
+
+    const contestsWithCount = contests.map((contest) => {
+      const plainContest = contest.get({ plain: true });
+
+      return {
+        ...plainContest,
+        count: plainContest.Offers.length,
+      };
+    });
+
+    return res.status(200).send({
+      contests: contestsWithCount,
+      haveMore: contests.length > 0,
+    });
+  } catch (error) {
+    const serverError = new ServerError('Cannot get contests');
+    serverError.cause = error;
+    return next(serverError);
   }
-
-  const hasOwnEntries = ownEntries === 'true';
-
-  const predicates = UtilFunctions.createWhereForAllContests(
-    typeIndex,
-    contestId,
-    industry,
-    awardSort
-  );
-
-  db.Contests.findAll({
-    where: predicates.where,
-    order: predicates.order,
-    limit,
-    offset,
-    include: [
-      {
-        model: db.Offers,
-        required: hasOwnEntries,
-        where: hasOwnEntries ? { userId: req.tokenData.userId } : {},
-        attributes: ['id'],
-      },
-    ],
-  })
 };
 
 module.exports.getAllOffers = async (req, res, next) => {
